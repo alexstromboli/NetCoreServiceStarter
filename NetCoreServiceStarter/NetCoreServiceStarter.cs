@@ -1,5 +1,5 @@
 ﻿using System.Threading;
-using System.Runtime.Loader;
+using System.Runtime.InteropServices;
 
 namespace Utils.NetCoreService.Dual
 {
@@ -10,7 +10,7 @@ namespace Utils.NetCoreService.Dual
 		public NetCoreServiceStarter ()
 		{
 			areStop = new AutoResetEvent (false);
-			AssemblyLoadContext.Default.Unloading += alc => areStop.Set ();
+			PosixSignalRegistration.Create (PosixSignal.SIGINT, c => areStop.Set ());
 		}
 
 		protected override string GetNetStarterPath ()

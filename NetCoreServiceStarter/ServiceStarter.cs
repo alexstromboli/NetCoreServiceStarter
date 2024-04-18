@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Linq;
 using System.Threading;
 using System.Diagnostics;
 
@@ -81,7 +82,7 @@ namespace Utils.LinuxService.Dual
 			return
 @"[Service]
 WorkingDirectory={1}
-ExecStart=" + NetStarterPath + @" {0} --{2}
+ExecStart=" + NetStarterPath + @" {0} --{2}{5}
 ExecStop=" + NetStarterPath + @" {0} --stop_by_pid $MAINPID
 User={3}
 Group={4}
@@ -115,7 +116,8 @@ WantedBy=multi-user.target
 
 				RunSystemctl ("stop", ServiceTitle);
 				RunSystemctl ("disable", ServiceTitle);
-				Setup (ServiceTitle, RunAsUser, RunAsGroup);
+				string[] AdditionalStartupCmdlineArgs = Args.SkipWhile (a => a != "--").Skip (1).ToArray ();
+				Setup (ServiceTitle, RunAsUser, RunAsGroup, AdditionalStartupCmdlineArgs);
 				return;
 			}
 			else if (Args.GetAndExcludeKey ("remove") != null)
@@ -198,7 +200,7 @@ WantedBy=multi-user.target
 			thMain = null;
 		}
 
-		protected void Setup (string ServiceTitle, string RunAsUser, string RunAsGroup)
+		protected void Setup (string ServiceTitle, string RunAsUser, string RunAsGroup, string[] AdditionalStartupCmdlineArgs = null)
 		{
 			string ServiceName = ServiceNameForTitle (ServiceTitle);
 
@@ -211,7 +213,8 @@ WantedBy=multi-user.target
 				ProcessExeDirPath,
 				AsServiceCmdKey,
 				RunAsUser,
-				RunAsGroup
+				RunAsGroup,
+				AdditionalStartupCmdlineArgs == null ? "" : string.Join ("", AdditionalStartupCmdlineArgs.Select (a => " " + a))
 				)
 				.Replace ("\r\n", "\n")
 				;

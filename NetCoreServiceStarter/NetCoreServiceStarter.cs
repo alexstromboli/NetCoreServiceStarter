@@ -1,5 +1,4 @@
 ﻿using System.Threading;
-using System.Runtime.InteropServices;
 
 namespace Utils.NetCoreService.Dual
 {
@@ -10,7 +9,11 @@ namespace Utils.NetCoreService.Dual
 		public NetCoreServiceStarter ()
 		{
 			areStop = new AutoResetEvent (false);
-			PosixSignalRegistration.Create (PosixSignal.SIGINT, c => areStop.Set ());
+			System.Console.CancelKeyPress += (_, ea) =>
+			{
+				ea.Cancel = true;
+				areStop.Set ();
+			};
 		}
 
 		protected override string GetNetStarterPath ()

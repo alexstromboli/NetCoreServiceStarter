@@ -7,7 +7,7 @@ namespace Utils
 	{
 		public static void Run (
 				string ServiceTitle,                 // service name for registration and start
-				Action<ManualResetEvent, bool> MainProc,        // key procedure, what the app must do
+				Action<CancellationToken, bool> MainProc,        // key procedure, what the app must do
 				string[] Args,       // command line arguments
 				string RunAsUser = null,
 				string RunAsGroup = null

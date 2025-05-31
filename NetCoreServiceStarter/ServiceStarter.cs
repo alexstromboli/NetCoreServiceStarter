@@ -100,7 +100,7 @@ WantedBy=multi-user.target
 		// basic procedure
 		public void Run (
 				string ServiceTitle,                 // service name for registration and start
-				Action<ManualResetEvent, bool> MainProc,        // key procedure, what the app must do
+				Action<CancellationToken, bool> MainProc,        // key procedure, what the app must do
 				string[] args,       // command line arguments
 				string RunAsUser = null,
 				string RunAsGroup = null
@@ -180,8 +180,8 @@ WantedBy=multi-user.target
 			// run server
 			bool IsInServiceMode = Args.GetAndExcludeKey (AsServiceCmdKey) != null;
 
-			ManualResetEvent mreStop = new ManualResetEvent (false);
-			Thread thMain = new Thread (() => MainProc (mreStop, IsInServiceMode));
+			using CancellationTokenSource Cancel = new CancellationTokenSource ();
+			Thread thMain = new Thread (() => MainProc (Cancel.Token, IsInServiceMode));
 			thMain.Start ();
 
 			if (IsInServiceMode)
@@ -193,10 +193,8 @@ WantedBy=multi-user.target
 				Console.ReadLine ();
 			}
 
-			mreStop.Set ();
+			Cancel.Cancel ();
 			thMain.Join ();
-			mreStop.Dispose ();
-			mreStop = null;
 			thMain = null;
 		}
 

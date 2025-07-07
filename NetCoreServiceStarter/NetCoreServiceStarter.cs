@@ -1,18 +1,20 @@
 ﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace Utils.NetCoreService.Dual
 {
 	class NetCoreServiceStarter : Utils.LinuxService.Dual.ServiceStarter
 	{
-		protected AutoResetEvent areStop;
+		protected CancellationTokenSource StopSource;
 
 		public NetCoreServiceStarter ()
 		{
-			areStop = new AutoResetEvent (false);
+			StopSource = new CancellationTokenSource ();
+
 			System.Console.CancelKeyPress += (_, ea) =>
 			{
 				ea.Cancel = true;
-				areStop.Set ();
+				StopSource.Cancel ();
 			};
 		}
 
@@ -21,9 +23,9 @@ namespace Utils.NetCoreService.Dual
 			return "/usr/bin/dotnet";
 		}
 
-		protected override void Wait ()
+		protected override async Task Wait ()
 		{
-			areStop.WaitOne ();
+			await Utils.Tasks.CancellationTokenExtensions.WaitAnyCancellationAsync (StopSource.Token);
 		}
 	}
 }

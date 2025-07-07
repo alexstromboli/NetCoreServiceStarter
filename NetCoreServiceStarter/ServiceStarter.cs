@@ -4,6 +4,7 @@ using System.Text;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace Utils.LinuxService.Dual
 {
@@ -73,7 +74,7 @@ namespace Utils.LinuxService.Dual
 		}
 
 		protected abstract string GetNetStarterPath ();
-		protected abstract void Wait ();
+		protected abstract Task Wait ();
 
 		protected virtual string GetServiceFilePattern ()
 		{
@@ -98,9 +99,9 @@ WantedBy=multi-user.target
 		}
 
 		// basic procedure
-		public void Run (
+		public async Task Run (
 				string ServiceTitle,                 // service name for registration and start
-				Action<CancellationToken, bool> MainProc,        // key procedure, what the app must do
+				Func<CancellationToken, bool, Task> MainProc,        // key procedure, what the app must do
 				string[] args,       // command line arguments
 				string RunAsUser = null,
 				string RunAsGroup = null
@@ -181,12 +182,11 @@ WantedBy=multi-user.target
 			bool IsInServiceMode = Args.GetAndExcludeKey (AsServiceCmdKey) != null;
 
 			using CancellationTokenSource Cancel = new CancellationTokenSource ();
-			Thread thMain = new Thread (() => MainProc (Cancel.Token, IsInServiceMode));
-			thMain.Start ();
+			Task tMain = MainProc (Cancel.Token, IsInServiceMode);
 
 			if (IsInServiceMode)
 			{
-				Wait ();
+				await Wait ();
 			}
 			else
 			{
@@ -194,8 +194,7 @@ WantedBy=multi-user.target
 			}
 
 			Cancel.Cancel ();
-			thMain.Join ();
-			thMain = null;
+			await tMain;
 		}
 
 		protected void Setup (string ServiceTitle, string RunAsUser, string RunAsGroup, string[] AdditionalStartupCmdlineArgs = null)

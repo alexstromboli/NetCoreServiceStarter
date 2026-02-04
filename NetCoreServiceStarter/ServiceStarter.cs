@@ -76,9 +76,13 @@ namespace Utils.LinuxService.Dual
 		protected abstract string GetNetStarterPath ();
 		protected abstract Task Wait ();
 
-		protected virtual string GetServiceFilePattern ()
+		protected virtual string GetServiceFilePattern (int? AutoRestartOnFailureInSeconds = null)
 		{
 			string NetStarterPath = GetNetStarterPath ();
+
+			string RestartDirectives = AutoRestartOnFailureInSeconds.HasValue
+				? $"\nRestart=on-failure\nRestartSec={AutoRestartOnFailureInSeconds.Value}"
+				: "";
 
 			return
 @"[Service]
@@ -86,7 +90,7 @@ WorkingDirectory={1}
 ExecStart=" + NetStarterPath + @" {0} --{2}{5}
 ExecStop=" + NetStarterPath + @" {0} --stop_by_pid $MAINPID
 User={3}
-Group={4}
+Group={4}" + RestartDirectives + @"
 
 [Install]
 WantedBy=multi-user.target
@@ -104,7 +108,8 @@ WantedBy=multi-user.target
 				Func<CancellationToken, bool, Task> MainProc,        // key procedure, what the app must do
 				string[] args,       // command line arguments
 				string RunAsUser = null,
-				string RunAsGroup = null
+				string RunAsGroup = null,
+				int? AutoRestartOnFailureInSeconds = null
 			)
 		{
 			var Args = new Utils.Args.Args (args, true);
@@ -118,7 +123,7 @@ WantedBy=multi-user.target
 				RunSystemctl ("stop", ServiceTitle);
 				RunSystemctl ("disable", ServiceTitle);
 				string[] AdditionalStartupCmdlineArgs = Args.SkipWhile (a => a != "--").Skip (1).ToArray ();
-				Setup (ServiceTitle, RunAsUser, RunAsGroup, AdditionalStartupCmdlineArgs);
+				Setup (ServiceTitle, RunAsUser, RunAsGroup, AdditionalStartupCmdlineArgs, AutoRestartOnFailureInSeconds);
 				return;
 			}
 			else if (Args.GetAndExcludeKey ("remove") != null)
@@ -197,7 +202,7 @@ WantedBy=multi-user.target
 			await tMain;
 		}
 
-		protected void Setup (string ServiceTitle, string RunAsUser, string RunAsGroup, string[] AdditionalStartupCmdlineArgs = null)
+		protected void Setup (string ServiceTitle, string RunAsUser, string RunAsGroup, string[] AdditionalStartupCmdlineArgs = null, int? AutoRestartOnFailureInSeconds = null)
 		{
 			string ServiceName = ServiceNameForTitle (ServiceTitle);
 
@@ -205,7 +210,7 @@ WantedBy=multi-user.target
 			string ProcessExeDirPath = Path.GetDirectoryName (ProcessExeFilePath);
 			string ServiceSpecFilePath = Path.Combine (ProcessExeDirPath, ServiceName);
 
-			string ServiceFileBody = string.Format (GetServiceFilePattern (),
+			string ServiceFileBody = string.Format (GetServiceFilePattern (AutoRestartOnFailureInSeconds),
 				ProcessExeFilePath,
 				ProcessExeDirPath,
 				AsServiceCmdKey,

@@ -11,12 +11,13 @@ namespace Utils
 				Func<CancellationToken, bool, Task> MainProc,        // key procedure, what the app must do
 				string[] Args,       // command line arguments
 				string RunAsUser = null,
-				string RunAsGroup = null
+				string RunAsGroup = null,
+				int? AutoRestartOnFailureInSeconds = null
 			)
 		{
 			return (new Utils.NetCoreService.Dual.NetCoreServiceStarter ())
 				.Run (ServiceTitle, MainProc, Args,
-				RunAsUser, RunAsGroup);
+				RunAsUser, RunAsGroup, AutoRestartOnFailureInSeconds);
 		}
 	}
 }

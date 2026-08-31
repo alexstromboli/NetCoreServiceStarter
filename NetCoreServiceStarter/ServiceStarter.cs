@@ -200,16 +200,15 @@ WantedBy=multi-user.target
 
 			if (!IsInServiceMode && !Console.IsInputRedirected)
 			{
-				// interactive run from a terminal: Enter stops the service the way it always
-				// did, and now a signal stops it too. Ctrl+C used to be swallowed here - the
-				// handler cancelled a token nothing in this branch was watching, so the only
-				// ways out were Enter and kill -9.
+				// interactive run from a terminal: Enter stops the service, and so does a
+				// signal. Both have to be waited on here - a handler that cancels a token
+				// nothing in this branch watches leaves Enter and kill -9 as the only ways out.
 				//
 				// the wait is SYNCHRONOUS - Task.WaitAny, not await - on purpose. at least one
 				// caller invokes Run without awaiting the task it returns, and depends on this
-				// call blocking for as long as the service runs; the blocking Console.ReadLine ()
-				// used to give it exactly that. an await here would hand control straight back
-				// to that caller and let the process exit seconds after startup.
+				// call blocking for as long as the service runs, which is exactly what the
+				// blocking Console.ReadLine () gives it. an await here would hand control
+				// straight back to that caller and let the process exit seconds after startup.
 				//
 				// the reader task stays blocked on stdin for the rest of the process. that is
 				// acceptable: it is one background pool thread, it never keeps the process
@@ -221,8 +220,8 @@ WantedBy=multi-user.target
 			{
 				// service mode, or stdin already at EOF because a script, a unit file or a
 				// container started us. Console.ReadLine () returns null immediately in that
-				// case, which used to stop the service about a second after it started, with
-				// status 0 and nothing said about why
+				// case, which would stop the service about a second after it started, with
+				// status 0 and nothing said about why - hence the branch
 				await Task.WhenAny (tStop, tMain);
 			}
 

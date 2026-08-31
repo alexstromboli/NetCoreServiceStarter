@@ -47,9 +47,10 @@ namespace Utils.NetCoreService.Dual
 				StopSource.Cancel ();
 			});
 
-			// SIGINT covers Ctrl+C and the systemd ExecStop path, and replaces the
-			// Console.CancelKeyPress subscription that used to live here. caveat, and it
-			// is shell behaviour rather than a defect of ours: a non-interactive shell
+			// SIGINT covers Ctrl+C and the systemd ExecStop path. It is registered here
+			// rather than through Console.CancelKeyPress, which does not cover SIGTERM at
+			// all. caveat, and it is shell behaviour rather than a defect of ours: a
+			// non-interactive shell
 			// starts its background children with SIGINT set to SIG_IGN, .NET declines to
 			// install a handler over an inherited SIG_IGN, and 'kill -INT' from a script
 			// is then a no-op against such a process. scripts should send SIGTERM
